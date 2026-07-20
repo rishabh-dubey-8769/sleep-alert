@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>Browser Nap & Drowsiness Alert</title>
 
   <!-- MediaPipe Face Mesh CDNs -->
@@ -10,26 +10,49 @@
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
 
   <style>
-    body {
+    * {
+      box-sizing: border-box;
       margin: 0;
-      font-family: Arial, sans-serif;
-      background-color: #121212;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: radial-gradient(circle at top, #1a1e29, #0a0c10);
       color: #ffffff;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       min-height: 100vh;
-      overflow: hidden;
+      padding: 16px;
+      overflow-x: hidden;
     }
 
+    h2 {
+      font-size: clamp(1.4rem, 4vw, 2.2rem);
+      margin-bottom: 20px;
+      text-align: center;
+      font-weight: 700;
+      background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
+    }
+
+    /* Video Container - Fully Responsive Aspect Ratio */
     #container {
       position: relative;
-      width: 640px;
-      height: 480px;
-      border-radius: 12px;
+      width: 100%;
+      max-width: 680px;
+      aspect-ratio: 4 / 3;
+      border-radius: 20px;
       overflow: hidden;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
+      background-color: #12141c;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     video {
@@ -39,49 +62,126 @@
       transform: scaleX(-1); /* Mirror camera */
     }
 
-    /* Red Alert Fullscreen Overlay */
+    /* Status Bar with Enlarged Blinking Pulse Indicator */
+    #status-wrapper {
+      margin-top: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 12px 24px;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 50px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      max-width: 90vw;
+    }
+
+    #status-box {
+      font-size: clamp(0.95rem, 3vw, 1.25rem);
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      text-align: center;
+    }
+
+    /* Prominent Green Pulse Rings */
+    .pulse-container {
+      position: relative;
+      width: 24px;
+      height: 24px;
+      display: none; /* Controlled dynamically */
+      flex-shrink: 0;
+    }
+
+    .pulse-dot {
+      width: 14px;
+      height: 14px;
+      background-color: #30d158;
+      border-radius: 50%;
+      position: absolute;
+      top: 5px;
+      left: 5px;
+      box-shadow: 0 0 10px #30d158;
+    }
+
+    .pulse-ring {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 24px;
+      height: 24px;
+      border: 2.5px solid #30d158;
+      border-radius: 50%;
+      animation: pulse 1.6s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+      opacity: 0;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(0.4);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(2.4);
+        opacity: 0;
+      }
+    }
+
+    /* Fullscreen Red Alert Overlay */
     #alert-overlay {
       position: fixed;
       top: 0;
       left: 0;
       width: 100vw;
       height: 100vh;
-      background-color: rgba(255, 0, 0, 0.85);
+      background: radial-gradient(circle, rgba(255, 59, 48, 0.95) 0%, rgba(180, 0, 0, 0.98) 100%);
       display: none;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       z-index: 9999;
-      animation: flash 0.5s infinite alternate;
+      padding: 20px;
+      text-align: center;
+      animation: flash 0.6s infinite alternate ease-in-out;
     }
 
     @keyframes flash {
-      from { opacity: 0.7; }
-      to { opacity: 1; }
+      from { opacity: 0.85; transform: scale(1); }
+      to { opacity: 1; transform: scale(1.02); }
     }
 
     #alert-overlay h1 {
-      font-size: 4rem;
-      margin: 0;
-      color: #fff;
-      text-shadow: 0 0 10px #000;
+      font-size: clamp(2.5rem, 8vw, 5rem);
+      margin-bottom: 12px;
+      color: #ffffff;
+      text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      font-weight: 900;
+      letter-spacing: 1px;
     }
 
-    #status-box {
-      margin-top: 15px;
-      font-size: 1.2rem;
-      font-weight: bold;
+    #alert-overlay p {
+      font-size: clamp(1rem, 3.5vw, 1.5rem);
+      color: rgba(255, 255, 255, 0.9);
+      margin-bottom: 24px;
+      max-width: 500px;
     }
 
     button {
-      padding: 10px 20px;
-      font-size: 1rem;
-      background-color: #ff3b30;
-      color: white;
+      padding: 14px 32px;
+      font-size: clamp(1rem, 3vw, 1.2rem);
+      font-weight: 700;
+      background-color: #ffffff;
+      color: #ff3b30;
       border: none;
-      border-radius: 6px;
+      border-radius: 50px;
       cursor: pointer;
-      margin-top: 10px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      transition: all 0.2s ease;
+    }
+
+    button:active {
+      transform: scale(0.95);
     }
   </style>
 </head>
@@ -93,7 +193,13 @@
     <video id="webcam" autoplay playsinline></video>
   </div>
 
-  <div id="status-box">Status: Initializing Camera...</div>
+  <div id="status-wrapper">
+    <div id="pulse-indicator" class="pulse-container">
+      <div class="pulse-dot"></div>
+      <div class="pulse-ring"></div>
+    </div>
+    <div id="status-box">Status: Initializing Camera...</div>
+  </div>
 
   <!-- Red Fullscreen Warning Overlay -->
   <div id="alert-overlay">
@@ -106,28 +212,44 @@
     const videoElement = document.getElementById('webcam');
     const statusBox = document.getElementById('status-box');
     const alertOverlay = document.getElementById('alert-overlay');
+    const pulseIndicator = document.getElementById('pulse-indicator');
 
     let closedStartTime = null;
     const NAP_THRESHOLD_MS = 5000; // 5 Seconds
     let alertTriggered = false;
 
-    // Web Audio API Synth Siren (No external mp3 needed)
+    // Web Audio API Synth Siren
     let audioCtx = null;
     let oscillator = null;
+
+    // Request System Notification Permission
+    if ("Notification" in window) {
+      if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+        Notification.requestPermission();
+      }
+    }
+
+    function sendSystemNotification() {
+      if ("Notification" in window && Notification.permission === "granted") {
+        const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        new Notification("Drowsiness Alert!", {
+          body: `At this time, you took a nap: ${timestamp}`,
+          tag: "nap-alert"
+        });
+      }
+    }
 
     function playRedAlertSound() {
       if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       }
-      if (oscillator) return; // Already playing
+      if (oscillator) return;
 
       oscillator = audioCtx.createOscillator();
       const gainNode = audioCtx.createGain();
 
       oscillator.type = 'sawtooth';
       oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
-      
-      // Siren sweep effect
       oscillator.frequency.linearRampToValueAtTime(400, audioCtx.currentTime + 0.3);
       
       gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
@@ -136,7 +258,6 @@
       gainNode.connect(audioCtx.destination);
       oscillator.start();
 
-      // Loop frequency sweep
       setInterval(() => {
         if (oscillator && audioCtx) {
           oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
@@ -153,7 +274,6 @@
       }
     }
 
-    // Eye Aspect Ratio (EAR) distance calculation
     function getDistance(p1, p2) {
       return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
     }
@@ -173,12 +293,12 @@
       return (vertical1 + vertical2) / (2.0 * horizontal);
     }
 
-    // MediaPipe Landmarks for Left Eye
     const LEFT_EYE = [362, 385, 387, 263, 373, 380];
 
     function onResults(results) {
       if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
         statusBox.innerText = "Status: No face detected";
+        pulseIndicator.style.display = 'none';
         closedStartTime = null;
         return;
       }
@@ -186,8 +306,9 @@
       const landmarks = results.multiFaceLandmarks[0];
       const ear = calculateEAR(landmarks, LEFT_EYE);
 
-      // EAR threshold for closed eyes
       if (ear < 0.21) {
+        pulseIndicator.style.display = 'none';
+
         if (!closedStartTime) {
           closedStartTime = Date.now();
         }
@@ -201,12 +322,13 @@
           alertTriggered = true;
           alertOverlay.style.display = 'flex';
           playRedAlertSound();
+          sendSystemNotification();
         }
       } else {
-        // Eyes opened -> Reset timer
         closedStartTime = null;
         if (!alertTriggered) {
-          statusBox.innerText = "Status: Awake & Working 😊";
+          pulseIndicator.style.display = 'block';
+          statusBox.innerText = "Status: Awake & Working";
         }
       }
     }
@@ -216,10 +338,10 @@
       alertOverlay.style.display = 'none';
       stopRedAlertSound();
       closedStartTime = null;
-      statusBox.innerText = "Status: Awake & Working 😊";
+      pulseIndicator.style.display = 'block';
+      statusBox.innerText = "Status: Awake & Working";
     }
 
-    // Initialize MediaPipe FaceMesh
     const faceMesh = new FaceMesh({
       locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
     });
@@ -233,7 +355,6 @@
 
     faceMesh.onResults(onResults);
 
-    // Setup Webcam Stream
     const camera = new Camera(videoElement, {
       onFrame: async () => {
         await faceMesh.send({ image: videoElement });
