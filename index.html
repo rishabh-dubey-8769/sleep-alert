@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Browser Nap & Drowsiness Alert</title>
+
+  <!-- MediaPipe Face Mesh CDNs -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #121212;
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    #container {
+      position: relative;
+      width: 640px;
+      height: 480px;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1); /* Mirror camera */
+    }
+
+    /* Red Alert Fullscreen Overlay */
+    #alert-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(255, 0, 0, 0.85);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      animation: flash 0.5s infinite alternate;
+    }
+
+    @keyframes flash {
+      from { opacity: 0.7; }
+      to { opacity: 1; }
+    }
+
+    #alert-overlay h1 {
+      font-size: 4rem;
+      margin: 0;
+      color: #fff;
+      text-shadow: 0 0 10px #000;
+    }
+
+    #status-box {
+      margin-top: 15px;
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 1rem;
+      background-color: #ff3b30;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Real-Time Nap Alert System</h2>
+
+  <div id="container">
+    <video id="webcam" autoplay playsinline></video>
+  </div>
+
+  <div id="status-box">Status: Initializing Camera...</div>
+
+  <!-- Red Fullscreen Warning Overlay -->
+  <div id="alert-overlay">
+    <h1>🚨 WAKE UP! 🚨</h1>
+    <p>You have been asleep for more than 5 seconds!</p>
+    <button onclick="dismissAlert()">I'm Awake!</button>
+  </div>
+
+  <script>
+    const videoElement = document.getElementById('webcam');
+    const statusBox = document.getElementById('status-box');
+    const alertOverlay = document.getElementById('alert-overlay');
+
+    let closedStartTime = null;
+    const NAP_THRESHOLD_MS = 5000; // 5 Seconds
+    let alertTriggered = false;
+
+    // Web Audio API Synth Siren (No external mp3 needed)
+    let audioCtx = null;
+    let oscillator = null;
+
+    function playRedAlertSound() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (oscillator) return; // Already playing
+
+      oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+
+      oscillator.type = 'sawtooth';
+      oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
+      
+      // Siren sweep effect
+      oscillator.frequency.linearRampToValueAtTime(400, audioCtx.currentTime + 0.3);
+      
+      gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      oscillator.start();
+
+      // Loop frequency sweep
+      setInterval(() => {
+        if (oscillator && audioCtx) {
+          oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
+          oscillator.frequency.linearRampToValueAtTime(400, audioCtx.currentTime + 0.3);
+        }
+      }, 400);
+    }
+
+    function stopRedAlertSound() {
+      if (oscillator) {
+        oscillator.stop();
+        oscillator.disconnect();
+        oscillator = null;
+      }
+    }
+
+    // Eye Aspect Ratio (EAR) distance calculation
+    function getDistance(p1, p2) {
+      return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+    }
+
+    function calculateEAR(landmarks, leftEyeIndices) {
+      const p1 = landmarks[leftEyeIndices[0]];
+      const p2 = landmarks[leftEyeIndices[1]];
+      const p3 = landmarks[leftEyeIndices[2]];
+      const p4 = landmarks[leftEyeIndices[3]];
+      const p5 = landmarks[leftEyeIndices[4]];
+      const p6 = landmarks[leftEyeIndices[5]];
+
+      const vertical1 = getDistance(p2, p6);
+      const vertical2 = getDistance(p3, p5);
+      const horizontal = getDistance(p1, p4);
+
+      return (vertical1 + vertical2) / (2.0 * horizontal);
+    }
+
+    // MediaPipe Landmarks for Left Eye
+    const LEFT_EYE = [362, 385, 387, 263, 373, 380];
+
+    function onResults(results) {
+      if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
+        statusBox.innerText = "Status: No face detected";
+        closedStartTime = null;
+        return;
+      }
+
+      const landmarks = results.multiFaceLandmarks[0];
+      const ear = calculateEAR(landmarks, LEFT_EYE);
+
+      // EAR threshold for closed eyes
+      if (ear < 0.21) {
+        if (!closedStartTime) {
+          closedStartTime = Date.now();
+        }
+
+        const elapsed = Date.now() - closedStartTime;
+        const secondsLeft = Math.max(0, (NAP_THRESHOLD_MS - elapsed) / 1000).toFixed(1);
+
+        statusBox.innerText = `Status: Eyes Closed! Warning in ${secondsLeft}s`;
+
+        if (elapsed >= NAP_THRESHOLD_MS && !alertTriggered) {
+          alertTriggered = true;
+          alertOverlay.style.display = 'flex';
+          playRedAlertSound();
+        }
+      } else {
+        // Eyes opened -> Reset timer
+        closedStartTime = null;
+        if (!alertTriggered) {
+          statusBox.innerText = "Status: Awake & Working 😊";
+        }
+      }
+    }
+
+    function dismissAlert() {
+      alertTriggered = false;
+      alertOverlay.style.display = 'none';
+      stopRedAlertSound();
+      closedStartTime = null;
+      statusBox.innerText = "Status: Awake & Working 😊";
+    }
+
+    // Initialize MediaPipe FaceMesh
+    const faceMesh = new FaceMesh({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+    });
+
+    faceMesh.setOptions({
+      maxNumFaces: 1,
+      refineLandmarks: true,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
+
+    faceMesh.onResults(onResults);
+
+    // Setup Webcam Stream
+    const camera = new Camera(videoElement, {
+      onFrame: async () => {
+        await faceMesh.send({ image: videoElement });
+      },
+      width: 640,
+      height: 480
+    });
+
+    camera.start();
+  </script>
+</body>
+</html>
