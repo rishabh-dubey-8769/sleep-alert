@@ -438,7 +438,7 @@
         progressFill.style.width = percentage + "%";
         timerVal.innerText = `${secondsElapsed.toFixed(1)}s / 5.0s`;
 
-        statusBox.innerText = `Status: Eyes Closed! Warning in ${secondsLeft}s`;
+        statusBox.innerText = `🙈: Eyes Closed! Warning in ${secondsLeft}s`;
 
         if (elapsed >= NAP_THRESHOLD_MS && !alertTriggered) {
           alertTriggered = true;
@@ -454,7 +454,7 @@
 
         if (!alertTriggered) {
           pulseIndicator.style.display = 'block';
-          statusBox.innerText = "Status: Awake & Working";
+          statusBox.innerText = "👁️: Awake & Working";
         }
       }
     }
@@ -467,7 +467,7 @@
       progressFill.style.width = "0%";
       timerVal.innerText = "0.0s / 5.0s";
       pulseIndicator.style.display = 'block';
-      statusBox.innerText = "Status: Awake & Working";
+      statusBox.innerText = "👁️: Awake & Working";
     }
 
     // Initialize MediaPipe FaceMesh
