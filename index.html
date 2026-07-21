@@ -90,7 +90,7 @@
       position: relative;
       width: 24px;
       height: 24px;
-      display: none; /* Controlled dynamically */
+      display: none;
       flex-shrink: 0;
     }
 
@@ -274,26 +274,44 @@
       }
     }
 
+    // Euclidean distance calculation
     function getDistance(p1, p2) {
       return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
     }
 
-    function calculateEAR(landmarks, leftEyeIndices) {
-      const p1 = landmarks[leftEyeIndices[0]];
-      const p2 = landmarks[leftEyeIndices[1]];
-      const p3 = landmarks[leftEyeIndices[2]];
-      const p4 = landmarks[leftEyeIndices[3]];
-      const p5 = landmarks[leftEyeIndices[4]];
-      const p6 = landmarks[leftEyeIndices[5]];
+    // Eye Aspect Ratio calculation
+    function calculateEAR(landmarks, eyeIndices) {
+      const p1 = landmarks[eyeIndices[0]];
+      const p2 = landmarks[eyeIndices[1]];
+      const p3 = landmarks[eyeIndices[2]];
+      const p4 = landmarks[eyeIndices[3]];
+      const p5 = landmarks[eyeIndices[4]];
+      const p6 = landmarks[eyeIndices[5]];
 
       const vertical1 = getDistance(p2, p6);
       const vertical2 = getDistance(p3, p5);
       const horizontal = getDistance(p1, p4);
 
+      if (horizontal === 0) return 0;
       return (vertical1 + vertical2) / (2.0 * horizontal);
     }
 
+    // MediaPipe Landmark Indices for Both Eyes
     const LEFT_EYE = [362, 385, 387, 263, 373, 380];
+    const RIGHT_EYE = [33, 160, 158, 133, 153, 144];
+
+    // MediaPipe Iris Landmarks (Iris points refine exact open state)
+    const LEFT_IRIS = [474, 475, 476, 477];
+    const RIGHT_IRIS = [469, 470, 471, 472];
+
+    function isIrisVisible(landmarks, irisIndices, eyeIndices) {
+      const eyeTop = landmarks[eyeIndices[1]];
+      const eyeBottom = landmarks[eyeIndices[5]];
+      const eyeHeight = getDistance(eyeTop, eyeBottom);
+
+      // If vertical eyelid gap is extremely narrow (< 1.5 pixels relative), iris is hidden
+      return eyeHeight > 0.008;
+    }
 
     function onResults(results) {
       if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
@@ -304,9 +322,25 @@
       }
 
       const landmarks = results.multiFaceLandmarks[0];
-      const ear = calculateEAR(landmarks, LEFT_EYE);
 
-      if (ear < 0.21) {
+      // Calculate EAR for both left and right eyes
+      const leftEAR = calculateEAR(landmarks, LEFT_EYE);
+      const rightEAR = calculateEAR(landmarks, RIGHT_EYE);
+
+      // Check if iris is visible in either eye
+      const leftIrisVisible = isIrisVisible(landmarks, LEFT_IRIS, LEFT_EYE);
+      const rightIrisVisible = isIrisVisible(landmarks, RIGHT_IRIS, RIGHT_EYE);
+
+      // Max EAR ensures that if AT LEAST ONE EYE is partially open (>10%), user is awake
+      const maxEAR = Math.max(leftEAR, rightEAR);
+      const irisOpen = leftIrisVisible || rightIrisVisible;
+
+      // Lower EAR threshold (0.15) accommodates downward gaze angles (pic1 & pic4)
+      const STRICT_CLOSED_THRESHOLD = 0.15;
+
+      const isEyesClosed = (maxEAR < STRICT_CLOSED_THRESHOLD) && !irisOpen;
+
+      if (isEyesClosed) {
         pulseIndicator.style.display = 'none';
 
         if (!closedStartTime) {
@@ -325,6 +359,7 @@
           sendSystemNotification();
         }
       } else {
+        // Eyes open or partially visible -> Keep awake status
         closedStartTime = null;
         if (!alertTriggered) {
           pulseIndicator.style.display = 'block';
@@ -342,13 +377,14 @@
       statusBox.innerText = "Status: Awake & Working";
     }
 
+    // Initialize MediaPipe FaceMesh
     const faceMesh = new FaceMesh({
       locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
     });
 
     faceMesh.setOptions({
       maxNumFaces: 1,
-      refineLandmarks: true,
+      refineLandmarks: true, // Enables high-precision 478 landmark mesh including irises
       minDetectionConfidence: 0.5,
       minTrackingConfidence: 0.5
     });
