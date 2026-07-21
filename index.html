@@ -21,38 +21,43 @@
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background: radial-gradient(circle at top, #1a1e29, #0a0c10);
+      background: radial-gradient(circle at 50% -20%, #1e1b4b 0%, #0f172a 45%, #020617 100%);
       color: #ffffff;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       min-height: 100vh;
-      padding: 16px;
+      padding: 24px 16px;
       overflow-x: hidden;
     }
 
     h2 {
-      font-size: clamp(1.4rem, 4vw, 2.2rem);
+      font-size: clamp(1.6rem, 5vw, 2.5rem);
       margin-bottom: 20px;
       text-align: center;
-      font-weight: 700;
-      background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+      font-weight: 800;
+      background: linear-gradient(135deg, #00f2fe 0%, #4facfe 50%, #a855f7 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       letter-spacing: -0.5px;
+      filter: drop-shadow(0 0 20px rgba(0, 242, 254, 0.3));
     }
 
-    /* Video Container - Fully Responsive Aspect Ratio */
+    /* Video Container - Fully Responsive Aspect Ratio with Vibrant Glow */
     #container {
       position: relative;
       width: 100%;
       max-width: 680px;
       aspect-ratio: 4 / 3;
-      border-radius: 20px;
+      border-radius: 28px;
       overflow: hidden;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
-      background-color: #12141c;
+      box-shadow: 
+        0 20px 50px rgba(0, 0, 0, 0.8),
+        0 0 30px rgba(79, 70, 229, 0.25),
+        inset 0 0 2px rgba(255, 255, 255, 0.2);
+      background-color: #0b0f19;
+      border: 1.5px solid rgba(168, 85, 247, 0.3);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -65,34 +70,50 @@
       transform: scaleX(-1); /* Mirror camera */
     }
 
+    /* Dashboard & Control Card */
+    .controls-card {
+      width: 100%;
+      max-width: 680px;
+      margin-top: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+      padding: 20px 28px;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+    }
+
     /* Status Bar with Enlarged Blinking Pulse Indicator */
     #status-wrapper {
-      margin-top: 24px;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 16px;
-      padding: 12px 24px;
-      background: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      padding: 10px 20px;
+      background: rgba(255, 255, 255, 0.04);
       border-radius: 50px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      max-width: 90vw;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      max-width: 100%;
     }
 
     #status-box {
       font-size: clamp(0.95rem, 3vw, 1.25rem);
-      font-weight: 600;
-      letter-spacing: 0.2px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
       text-align: center;
+      color: #f8fafc;
     }
 
     /* Prominent Green Pulse Rings */
     .pulse-container {
       position: relative;
-      width: 24px;
-      height: 24px;
+      width: 26px;
+      height: 26px;
       display: none;
       flex-shrink: 0;
     }
@@ -103,17 +124,17 @@
       background-color: #30d158;
       border-radius: 50%;
       position: absolute;
-      top: 5px;
-      left: 5px;
-      box-shadow: 0 0 10px #30d158;
+      top: 6px;
+      left: 6px;
+      box-shadow: 0 0 15px #30d158, 0 0 30px #30d158;
     }
 
     .pulse-ring {
       position: absolute;
       top: 0;
       left: 0;
-      width: 24px;
-      height: 24px;
+      width: 26px;
+      height: 26px;
       border: 2.5px solid #30d158;
       border-radius: 50%;
       animation: pulse 1.6s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
@@ -126,9 +147,50 @@
         opacity: 1;
       }
       100% {
-        transform: scale(2.4);
+        transform: scale(2.5);
         opacity: 0;
       }
+    }
+
+    /* Dynamic Timer Progress Bar */
+    .progress-group {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #cbd5e1;
+    }
+
+    .progress-header span {
+      color: #00f2fe;
+      font-weight: 800;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 12px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      position: relative;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #3b82f6 0%, #a855f7 50%, #ef4444 100%);
+      border-radius: 10px;
+      box-shadow: 0 0 12px rgba(239, 68, 68, 0.6);
+      transition: width 0.1s linear;
     }
 
     /* Fullscreen Red Alert Overlay */
@@ -138,7 +200,7 @@
       left: 0;
       width: 100vw;
       height: 100vh;
-      background: radial-gradient(circle, rgba(255, 59, 48, 0.95) 0%, rgba(180, 0, 0, 0.98) 100%);
+      background: radial-gradient(circle, rgba(255, 59, 48, 0.96) 0%, rgba(180, 0, 0, 0.98) 100%);
       display: none;
       flex-direction: column;
       align-items: center;
@@ -196,12 +258,25 @@
     <video id="webcam" autoplay playsinline></video>
   </div>
 
-  <div id="status-wrapper">
-    <div id="pulse-indicator" class="pulse-container">
-      <div class="pulse-dot"></div>
-      <div class="pulse-ring"></div>
+  <div class="controls-card">
+    <div id="status-wrapper">
+      <div id="pulse-indicator" class="pulse-container">
+        <div class="pulse-dot"></div>
+        <div class="pulse-ring"></div>
+      </div>
+      <div id="status-box">Status: Initializing Camera...</div>
     </div>
-    <div id="status-box">Status: Initializing Camera...</div>
+
+    <!-- Running Timer Progress Bar (0 to 5s) -->
+    <div class="progress-group">
+      <div class="progress-header">
+        <label>Sleep Timer Progress:</label>
+        <span id="timerVal">0.0s / 5.0s</span>
+      </div>
+      <div class="progress-track">
+        <div id="progressFill" class="progress-fill"></div>
+      </div>
+    </div>
   </div>
 
   <!-- Red Fullscreen Warning Overlay -->
@@ -216,6 +291,8 @@
     const statusBox = document.getElementById('status-box');
     const alertOverlay = document.getElementById('alert-overlay');
     const pulseIndicator = document.getElementById('pulse-indicator');
+    const progressFill = document.getElementById('progressFill');
+    const timerVal = document.getElementById('timerVal');
 
     let closedStartTime = null;
     const NAP_THRESHOLD_MS = 5000; // 5 Seconds
@@ -321,6 +398,8 @@
         statusBox.innerText = "Status: No face detected";
         pulseIndicator.style.display = 'none';
         closedStartTime = null;
+        progressFill.style.width = "0%";
+        timerVal.innerText = "0.0s / 5.0s";
         return;
       }
 
@@ -351,7 +430,13 @@
         }
 
         const elapsed = Date.now() - closedStartTime;
+        const secondsElapsed = Math.min(5.0, elapsed / 1000);
         const secondsLeft = Math.max(0, (NAP_THRESHOLD_MS - elapsed) / 1000).toFixed(1);
+
+        // Update progress bar and counter label dynamically from 0 to 5s
+        const percentage = Math.min(100, (elapsed / NAP_THRESHOLD_MS) * 100);
+        progressFill.style.width = percentage + "%";
+        timerVal.innerText = `${secondsElapsed.toFixed(1)}s / 5.0s`;
 
         statusBox.innerText = `Status: Eyes Closed! Warning in ${secondsLeft}s`;
 
@@ -362,8 +447,11 @@
           sendSystemNotification();
         }
       } else {
-        // Eyes open or partially visible -> Keep awake status
+        // Eyes open or partially visible -> Reset progress bar & timer
         closedStartTime = null;
+        progressFill.style.width = "0%";
+        timerVal.innerText = "0.0s / 5.0s";
+
         if (!alertTriggered) {
           pulseIndicator.style.display = 'block';
           statusBox.innerText = "Status: Awake & Working";
@@ -376,6 +464,8 @@
       alertOverlay.style.display = 'none';
       stopRedAlertSound();
       closedStartTime = null;
+      progressFill.style.width = "0%";
+      timerVal.innerText = "0.0s / 5.0s";
       pulseIndicator.style.display = 'block';
       statusBox.innerText = "Status: Awake & Working";
     }
